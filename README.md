@@ -13,7 +13,7 @@ taken from the keyboard configuration files.
 - Docker Compose
 - `make`
 - Python 3 on the host — needed for `scripts/select_image.py` (picking a
-  compatible image) and `scripts/build.py`
+  compatible image)
 - Internet access: Docker Hub (image) and GitHub (west dependencies on the first build)
 
 ## Quick start
@@ -28,6 +28,10 @@ the following ones.
 
 If `build.yaml` or `config/west.yml` is missing, the build stops before
 starting Docker and prints the expected keyboard-config layout.
+
+The keyboard config itself is not part of this repository — bring your own
+`zmk-config` folder. See the ZMK docs on
+[config repo setup](https://zmk.dev/docs/user-setup#config-repo-setup).
 
 The finished files appear in `output/`:
 
@@ -54,8 +58,9 @@ By default `scripts/select_image.py` picks an image matching the current ZMK
 revision:
 
 1. reads the `zmk` project and its `revision` from `config/west.yml`;
-2. checks it against the ref in `.github/workflows/build.yml` and stops with an
-   error if they differ — the local and the GitHub build must use the same ZMK revision;
+2. if you also have a GitHub Actions workflow (`.github/workflows/build.yml`),
+   checks the revision against its ref and stops with an error if they differ —
+   the local and the GitHub build must use the same ZMK revision;
 3. if `config/west.yml` has no revision — takes the ref from
    `.github/workflows/build.yml`, otherwise `main`;
 4. downloads `app/west.yml` of that ZMK revision and extracts the Zephyr version;

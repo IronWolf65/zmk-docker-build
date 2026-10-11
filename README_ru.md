@@ -13,7 +13,7 @@
 - Docker Compose
 - `make`
 - Python 3 на хосте — нужен для `scripts/select_image.py` (подбор совместимого
-  образа) и `scripts/build.py`
+  образа)
 - Доступ в интернет: Docker Hub (образ) и GitHub (west-зависимости при первой сборке)
 
 ## Быстрый старт
@@ -27,6 +27,10 @@ make build
 
 Если нет `build.yaml` или `config/west.yml`, сборка остановится ещё до запуска
 Docker и подскажет нужную структуру конфига клавиатуры.
+
+Сам конфиг клавиатуры в репозиторий не входит — положите рядом свою папку
+`zmk-config`. См. документацию ZMK про
+[настройку репозитория конфига](https://zmk.dev/docs/user-setup#config-repo-setup).
 
 Готовые файлы появятся в `output/`:
 
@@ -52,9 +56,9 @@ shield.
 По умолчанию `scripts/select_image.py` подбирает образ под текущую ревизию ZMK:
 
 1. читает проект `zmk` и его `revision` из `config/west.yml`;
-2. сверяет её с ref из `.github/workflows/build.yml` и останавливается с ошибкой
-   при расхождении — локальная сборка и сборка на GitHub должны использовать одну
-   и ту же ревизию ZMK;
+2. если есть workflow GitHub Actions (`.github/workflows/build.yml`), сверяет
+   её с его ref и останавливается с ошибкой при расхождении — локальная сборка и
+   сборка на GitHub должны использовать одну и ту же ревизию ZMK;
 3. если в `config/west.yml` ревизии нет — берёт ref из
    `.github/workflows/build.yml`, иначе `main`;
 4. скачивает `app/west.yml` этой ревизии ZMK и достаёт версию Zephyr;
