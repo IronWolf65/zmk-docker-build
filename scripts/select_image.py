@@ -1,4 +1,3 @@
-#!/usr/bin/env python3
 """Select the ZMK Docker image compatible with the configured ZMK revision.
 
 ZMK Docker images are versioned by the Zephyr major/minor version they contain,
@@ -27,37 +26,39 @@ WORKFLOW = ROOT / ".github" / "workflows" / "build.yml"
 def read(path: Path) -> str:
     try:
         return path.read_text(encoding="utf-8")
-    except FileNotFoundError:
+    except OSError:
         return ""
 
 
 def project_revision(manifest: str, project: str) -> str | None:
+    # Stop the scan at the next project line, so an entry without its own
+    # revision does not silently borrow the revision of a later project.
     match = re.search(
-        rf"(?ms)^\s*-\s+name:\s+{project}\s*$.*?^\s+revision:\s*([^#\s]+)",
+        rf"(?ms)^\s*-\s+name:\s+{project}\s*$(?:(?!^\s*-\s+name:).)*?^\s+revision:\s*([^#\s]+)",
         manifest,
     )
     return match.group(1).strip("'\"") if match else None
 
 
-def zmk_revision() -> str:
-    """Read the ZMK revision, preferring the local west manifest."""
-    revision = project_revision(read(WEST), "zmk")
-    if revision:
-        return revision
-
-    workflow = read(WORKFLOW)
+def workflow_revision(workflow: str) -> str | None:
     match = re.search(r"zmkfirmware/zmk/[^\s]+@([^\s\"']+)", workflow)
-    if match:
-        return match.group(1)
-    return "main"
+    return match.group(1) if match else None
+
+
+def zmk_revision() -> str:
+    """Read the ZMK revision from config/west.yml, checked against the workflow."""
+    revision = project_revision(read(WEST), "zmk")
+    workflow = workflow_revision(read(WORKFLOW))
+    if revision and workflow and revision != workflow:
+        raise RuntimeError(t("revision_mismatch", manifest=revision, workflow=workflow))
+    return revision or workflow or "main"
 
 
 def fetch_zmk_manifest(revision: str) -> str:
     revisions = [revision]
-    # Release refs are conventionally written as v0.3, while some local
-    # manifests use the shorter 0.3 form. Try both spellings.
+    # Release refs are tags (v0.3), not branches, so try the tag spelling first.
     if re.fullmatch(r"[0-9]+\.[0-9]+(?:\.[0-9]+)?", revision):
-        revisions.append(f"v{revision}")
+        revisions = [f"v{revision}", revision]
 
     last_error: Exception | None = None
     for candidate in revisions:

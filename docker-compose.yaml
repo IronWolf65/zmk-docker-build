@@ -1,6 +1,6 @@
 services:
   zmk-build:
-    image: ${ZMK_IMAGE:-zmkfirmware/zmk-build-arm:4.1-branch}
+    image: ${ZMK_IMAGE:?ZMK_IMAGE is not set}
     working_dir: /workspace/config-repo
     volumes:
       - .:/workspace/config-repo

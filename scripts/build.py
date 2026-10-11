@@ -3,12 +3,14 @@
 
 from __future__ import annotations
 
+import hashlib
 import re
 import os
 import shutil
 import subprocess
 import sys
 from pathlib import Path
+from typing import NoReturn
 
 from check_config import missing, t
 
@@ -23,7 +25,7 @@ MANIFEST_REPO = WORKSPACE / "manifest"
 ARTIFACT_SUFFIXES = (".uf2", ".hex", ".bin", ".elf", ".map")
 
 
-def fail(message: str) -> None:
+def fail(message: str) -> NoReturn:
     print(f"{t('error')}: {message}", file=sys.stderr)
     raise SystemExit(1)
 
@@ -60,6 +62,9 @@ def targets() -> list[dict]:
             fail(t("include_mapping", index=index))
         if not target.get("board"):
             fail(t("missing_board", index=index))
+        shield = target.get("shield")
+        if shield is not None and not isinstance(shield, str):
+            fail(t("shield", index=index))
         result.append(target)
     if not result:
         fail(t("empty_include"))
@@ -98,7 +103,7 @@ def snippet_args(target: dict) -> list[str]:
 
 def build_target(target: dict) -> None:
     board = str(target["board"])
-    shield = str(target.get("shield", ""))
+    shield = target.get("shield") or ""
     artifact_name = target.get("artifact-name") or target.get("artifact_name")
     label = str(artifact_name or "-".join(part for part in (board, shield) if part))
     # An explicitly supplied artifact-name is the base name of each output
@@ -140,8 +145,9 @@ def build_target(target: dict) -> None:
 
 
 def main() -> None:
-    if missing(REPO):
-        print(t("missing_config"), file=sys.stderr)
+    absent = missing(REPO)
+    if absent:
+        print(t("missing_config", missing=", ".join(absent)), file=sys.stderr)
         raise SystemExit(1)
 
     OUTPUT.mkdir(parents=True, exist_ok=True)
@@ -150,13 +156,18 @@ def main() -> None:
         shutil.rmtree(MANIFEST_REPO)
     shutil.copytree(REPO / "config", MANIFEST_REPO)
     initialized = (WORKSPACE / ".west" / "config").is_file()
+    # Track the manifest so a changed config/west.yml (e.g. a new ZMK revision)
+    # triggers west update instead of silently building the old checkout.
+    stamp = WORKSPACE / ".west" / "manifest.sha256"
+    digest = hashlib.sha256((MANIFEST_REPO / "west.yml").read_bytes()).hexdigest()
+    manifest_changed = not stamp.is_file() or stamp.read_text().strip() != digest
     if not initialized:
         run("west", "init", "-l", str(MANIFEST_REPO))
+    if not initialized or os.environ.get("ZMK_UPDATE") == "1" or manifest_changed:
         # ZMK's imported Zephyr manifest enables the optional group by default.
         # Those projects are not needed for a normal firmware build.
         run("west", "update", "--narrow", "--group-filter=-optional,+hal", cwd=WORKSPACE)
-    elif os.environ.get("ZMK_UPDATE") == "1":
-        run("west", "update", "--narrow", "--group-filter=-optional,+hal", cwd=WORKSPACE)
+        stamp.write_text(digest)
 
     if os.environ.get("ZMK_UPDATE") == "1":
         return

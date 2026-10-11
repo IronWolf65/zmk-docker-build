@@ -54,9 +54,12 @@ By default `scripts/select_image.py` picks an image matching the current ZMK
 revision:
 
 1. reads the `zmk` project and its `revision` from `config/west.yml`;
-2. if that's empty — takes the ref from `.github/workflows/build.yml`, otherwise `main`;
-3. downloads `app/west.yml` of that ZMK revision and extracts the Zephyr version;
-4. selects `zmkfirmware/zmk-<build|dev>-arm:<Zephyr major.minor>-branch`.
+2. checks it against the ref in `.github/workflows/build.yml` and stops with an
+   error if they differ — the local and the GitHub build must use the same ZMK revision;
+3. if `config/west.yml` has no revision — takes the ref from
+   `.github/workflows/build.yml`, otherwise `main`;
+4. downloads `app/west.yml` of that ZMK revision and extracts the Zephyr version;
+5. selects `zmkfirmware/zmk-<build|dev>-arm:<Zephyr major.minor>-branch`.
 
 For example, `main` currently uses Zephyr 4.1 → `zmkfirmware/zmk-build-arm:4.1-branch`;
 ZMK `v0.3` (Zephyr 3.5) → tag `3.5-branch`. The short form `0.3` also works.

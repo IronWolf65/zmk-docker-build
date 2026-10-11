@@ -52,9 +52,13 @@ shield.
 По умолчанию `scripts/select_image.py` подбирает образ под текущую ревизию ZMK:
 
 1. читает проект `zmk` и его `revision` из `config/west.yml`;
-2. если там пусто — берёт ref из `.github/workflows/build.yml`, иначе `main`;
-3. скачивает `app/west.yml` этой ревизии ZMK и достаёт версию Zephyr;
-4. выбирает `zmkfirmware/zmk-<build|dev>-arm:<Zephyr major.minor>-branch`.
+2. сверяет её с ref из `.github/workflows/build.yml` и останавливается с ошибкой
+   при расхождении — локальная сборка и сборка на GitHub должны использовать одну
+   и ту же ревизию ZMK;
+3. если в `config/west.yml` ревизии нет — берёт ref из
+   `.github/workflows/build.yml`, иначе `main`;
+4. скачивает `app/west.yml` этой ревизии ZMK и достаёт версию Zephyr;
+5. выбирает `zmkfirmware/zmk-<build|dev>-arm:<Zephyr major.minor>-branch`.
 
 Например, `main` сейчас использует Zephyr 4.1 → `zmkfirmware/zmk-build-arm:4.1-branch`;
 ZMK `v0.3` (Zephyr 3.5) → тег `3.5-branch`. Короткая запись `0.3` тоже работает.
