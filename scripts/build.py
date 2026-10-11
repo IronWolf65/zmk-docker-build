@@ -89,6 +89,13 @@ def cmake_args(target: dict) -> list[str]:
     return args
 
 
+def snippet_args(target: dict) -> list[str]:
+    snippet = target.get("snippet", "")
+    if not isinstance(snippet, str):
+        fail(t("snippet"))
+    return [arg for name in snippet.split() for arg in ("-S", name)]
+
+
 def build_target(target: dict) -> None:
     board = str(target["board"])
     shield = str(target.get("shield", ""))
@@ -107,7 +114,7 @@ def build_target(target: dict) -> None:
 
     command = [
         "west", "build", "-p", "always", "-d", str(build_dir), "-b", board,
-        str(ZMK / "app"), "--", *cmake_args(target),
+        *snippet_args(target), str(ZMK / "app"), "--", *cmake_args(target),
     ]
     build_env = os.environ.copy()
     build_env["ZEPHYR_BASE"] = str(WORKSPACE / "zephyr")
