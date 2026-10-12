@@ -164,9 +164,9 @@ def main() -> None:
     if not initialized:
         run("west", "init", "-l", str(MANIFEST_REPO))
     if not initialized or os.environ.get("ZMK_UPDATE") == "1" or manifest_changed:
-        # ZMK's imported Zephyr manifest enables the optional group by default.
-        # Those projects are not needed for a normal firmware build.
-        run("west", "update", "--narrow", "--group-filter=-optional,+hal", cwd=WORKSPACE)
+        # Zephyr's optional group is kept: it holds nanopb, which ZMK Studio
+        # (CONFIG_ZMK_STUDIO_RPC) selects. Disabling it broke Studio builds.
+        run("west", "update", "--narrow", "--group-filter=+optional,+hal", cwd=WORKSPACE)
         stamp.write_text(digest)
 
     if os.environ.get("ZMK_UPDATE") == "1":
